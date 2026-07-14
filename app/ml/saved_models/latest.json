@@ -1,0 +1,5 @@
+{
+  "model_path": "app/ml/saved_models\\typing_model_v20260709_054611.pkl",
+  "meta_path": "app/ml/saved_models\\typing_model_v20260709_054611.json",
+  "version": "v20260709_054611"
+}

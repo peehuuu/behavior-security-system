@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SENTINEL Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --blue: #3b82f6; --line: #334155; --green-dim: #065f46; --green: #10b981; --red: #ef4444; --gray: #9ca3af; --text-dim: #64748b; }
+        .panel { background: rgba(0,0,0,0.8); border: 1px solid var(--line); }
+        .hidden { display: none; }
+        
+        /* NEW: CSS for the screen shake effect */
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        .shake { animation: shake 0.1s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white p-8">
+
+    <div id="loginScreen" class="max-w-sm mx-auto panel rounded-lg p-6 mt-20">
+        <h2 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-4">Authenticate</h2>
+        <input id="loginUser" placeholder="username" class="w-full mb-2 bg-black/40 border border-[var(--line)] rounded p-2 text-white text-sm">
+        <input id="loginPass" type="password" placeholder="password" class="w-full mb-3 bg-black/40 border border-[var(--line)] rounded p-2 text-white text-sm">
+        <button id="loginBtn" class="w-full px-4 py-2 rounded bg-[var(--green-dim)] hover:bg-[var(--green)] hover:text-black transition text-sm">LOGIN</button>
+        <p id="loginError" class="text-[var(--red)] text-xs mt-2"></p>
+    </div>
+
+    <div id="dashboardRoot" class="hidden">
+        <header class="mb-8">
+            <h1 class="text-2xl font-bold text-[var(--blue)]">SENTINEL Dashboard</h1>
+        </header>
+        
+        <main class="grid grid-cols-2 gap-6">
+            <div id="chartPanel" class="panel p-6 rounded-lg flex items-center justify-center text-[var(--gray)]">Chart Area (WPM)</div>
+            
+            <div id="riskPanel" class="panel p-6 rounded-lg flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-4">Attack Simulation</h3>
+                    <label class="block text-xs text-[var(--gray)] mb-2">Select Phase 7 Attacker Archetype:</label>
+                    
+                    <div class="flex gap-2 items-center mt-3">
+                        <select id="attackTypeSelect" class="w-full bg-black/40 border border-[var(--line)] rounded p-2 text-sm text-[var(--red)] outline-none">
+                            <option value="bot_typing">Bot typing (uniform)</option>
+                            <option value="high_speed_typing">High-speed burst</option>
+                            <option value="noisy_impersonator">Noisy impersonator</option>
+                            <option value="random_noise_injection">Random noise</option>
+                        </select>
+                        <button id="attackBtn" class="px-4 py-2 rounded border border-[var(--red)] text-[var(--red)] hover:bg-[var(--red)] hover:text-black transition text-sm tracking-wide font-bold whitespace-nowrap">
+                            ⚠ LAUNCH
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="terminalLog" class="col-span-2 panel p-6 rounded-lg h-40 overflow-y-auto font-mono text-xs flex flex-col-reverse">
+                </div>
+        </main>
+
+        <div class="panel rounded-lg p-6 mt-6">
+            <h2 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-3">Session History</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead>
+                        <tr class="text-[var(--text-dim)] uppercase border-b border-[var(--line)]">
+                            <th class="px-2 py-2">ID</th>
+                            <th class="px-2 py-2">WPM</th>
+                            <th class="px-2 py-2">Risk</th>
+                            <th class="px-2 py-2">Label</th>
+                            <th class="px-2 py-2">Source</th>
+                            <th class="px-2 py-2">Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        async function login(username, password) {
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "login failed");
+            }
+            const data = await res.json();
+            authToken = data.token;
+            sessionStorage.setItem("authToken", authToken);
+            return data;
+        }
+
+        function authHeaders() {
+            return authToken ? { "Authorization": `Bearer ${authToken}` } : {};
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch("/api/sessions", { headers: authHeaders() });
+                if (!res.ok) throw new Error("Failed to load sessions");
+                
+                const sessions = await res.json();
+                const tbody = document.getElementById("historyBody");
+                tbody.innerHTML = "";
+                
+                sessions.forEach(s => {
+                    const row = document.createElement("tr");
+                    row.className = s.is_anomaly ? "text-[var(--red)]" : "text-[var(--green)]";
+                    const cells = [s.id, s.wpm, s.risk_score, s.true_label || "-", s.source, s.is_anomaly ? "ANOMALY" : "OK"];
+                    
+                    cells.forEach(val => {
+                        const td = document.createElement("td");
+                        td.textContent = val; 
+                        td.className = "px-2 py-2 border-b border-[var(--line)]/50";
+                        row.appendChild(td);
+                    });
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error loading history:", err);
+            }
+        }
+
+        async function submitSession(features) {
+            try {
+                const res = await fetch("/api/session", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...authHeaders() },
+                    body: JSON.stringify({ ...features, source: "live" })
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        document.getElementById("terminalLog").innerHTML = `<span class="text-[var(--red)]">[!] 401 Unauthorized: Token missing or expired.</span><br>` + document.getElementById("terminalLog").innerHTML;
+                    }
+                    return;
+                }
+                loadHistory(); 
+            } catch (err) {
+                console.error("Error submitting session:", err);
+            }
+        }
+
+        // NEW: Helper functions for Step 4
+        function renderResult(result, source) {
+            const logPanel = document.getElementById("terminalLog");
+            const statusClass = result.is_anomaly ? "text-[var(--red)]" : "text-[var(--green)]";
+            logPanel.innerHTML = `<span class="${statusClass}">[${source}] Risk Score: ${result.risk_score} | Verdict: ${result.is_anomaly ? "ANOMALY" : "OK"}</span><br>` + logPanel.innerHTML;
+        }
+
+        function updateChart(wpm) {
+            document.getElementById("chartPanel").innerHTML = `Latest Simulated WPM: <span class="text-[var(--blue)] font-bold text-2xl ml-2">${wpm}</span>`;
+        }
+
+        // NEW: Step 4 Simulation trigger hitting the real Phase 7 backend
+        async function triggerSimulatedAttack(attackType) {
+            try {
+                const res = await fetch("/api/simulate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...authHeaders() },
+                    body: JSON.stringify({ attack_type: attackType })
+                });
+                
+                if (!res.ok) throw new Error(`Backend Error ${res.status}`);
+                
+                const result = await res.json();
+                
+                renderResult(result, `simulated:${attackType}`);
+                updateChart(result.profile.wpm);
+                loadHistory(); 
+                
+                // Triggers the CSS shake animation
+                document.body.classList.add("shake");
+                setTimeout(() => document.body.classList.remove("shake"), 400);
+
+            } catch (err) {
+                console.error("Simulation failed:", err);
+                document.getElementById("terminalLog").innerHTML = `<span class="text-[var(--red)]">[!] Error connecting to /api/simulate. Is your backend running?</span><br>` + document.getElementById("terminalLog").innerHTML;
+            }
+        }
+
+        // NEW: Step 4 Button Event Listener
+        document.getElementById("attackBtn").addEventListener("click", () => {
+            const type = document.getElementById("attackTypeSelect").value;
+            triggerSimulatedAttack(type);
+        });
+
+        document.getElementById("loginBtn").addEventListener("click", async () => {
+            const username = document.getElementById("loginUser").value;
+            const password = document.getElementById("loginPass").value;
+            try {
+                await login(username, password);
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("dashboardRoot").classList.remove("hidden");
+                loadHistory(); 
+            } catch (err) {
+                document.getElementById("loginError").textContent = err.message;
+            }
+        });
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const saved = sessionStorage.getItem("authToken");
+            if (saved) {
+                authToken = saved;
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("dashboardRoot").classList.remove("hidden");
+                loadHistory();
+            }
+        });
+    </script>
+</body>
+</html>

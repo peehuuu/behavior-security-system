@@ -4,9 +4,6 @@
 # Flask instance folder
 instance/
 
-# ML models (avoid large files in repo)
-app/ml/saved_models/
-
 # Logs
 logs/
 

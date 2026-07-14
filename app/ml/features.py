@@ -3,6 +3,9 @@ import statistics
 
 
 def compute_features_v2(events, total_time, word_count, backspaces):
+    """
+    events: list of {"dwell_time": float, "flight_time": float|None}
+    """
     dwell_times = [e["dwell_time"] for e in events]
     flight_times = [e["flight_time"] for e in events if e["flight_time"] is not None]
 
@@ -29,4 +32,5 @@ FEATURE_ORDER = ["avg_dwell", "avg_flight", "std_dwell", "std_flight", "wpm",
 
 
 def to_vector(feature_dict):
+    """Fixed-order list the model expects -- ALWAYS build model inputs through this function."""
     return [feature_dict.get(k, 0) for k in FEATURE_ORDER]

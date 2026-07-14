@@ -1,0 +1,17 @@
+{
+  "version": "v20260706_094626",
+  "trained_at": "2026-07-06T09:46:26.336002",
+  "n_training_samples": 15,
+  "feature_order": [
+    "avg_dwell",
+    "avg_flight",
+    "std_dwell",
+    "std_flight",
+    "wpm",
+    "backspace_rate",
+    "longest_pause",
+    "dwell_flight_ratio"
+  ],
+  "metrics": {},
+  "model_path": "app/ml/saved_models\\typing_model_v20260706_094626.pkl"
+}
