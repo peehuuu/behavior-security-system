@@ -14,3 +14,10 @@ class Config:
     MODEL_DIR = os.environ.get("MODEL_DIR", "app/ml/saved_models")
     RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT_DEFAULT", "100 per hour")
     DEBUG = os.environ.get("FLASK_ENV", "production") == "development"
+
+DEMO_BASELINE = {
+    "avg_hold_time": 95.0,        # milliseconds
+    "avg_flight_time": 120.0,     # milliseconds
+    "hold_variance": 40.0,        # Natural human inconsistency
+    "flight_variance": 80.0       
+}

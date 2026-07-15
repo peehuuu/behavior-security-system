@@ -5,7 +5,6 @@ from app.config import Config
 from app.models.database import db
 from app.extensions import limiter, migrate  # <--- Added migrate
 from app.services.logging_config import setup_logging
-from app.routes.simulate import simulate_bp
 
 def create_app(config_class=Config):
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
@@ -32,14 +31,21 @@ def create_app(config_class=Config):
     os.makedirs(app.config["MODEL_DIR"], exist_ok=True)
     
     with app.app_context():
+        # 1. Import all blueprints here to avoid circular dependencies
         from app.routes.health import health_bp
-        app.register_blueprint(health_bp)
-        
         from app.routes.auth import auth_bp
+        from app.routes.simulate import simulate_bp
+        from app.routes.admin import admin_bp
+        from app.routes.session import session_bp  # <--- ADDED: Import session blueprint
+        
+        # 2. Register all blueprints
+        app.register_blueprint(health_bp)
         app.register_blueprint(auth_bp)
-        
-        # db.create_all() has been REMOVED.
-        
         app.register_blueprint(simulate_bp)
-        
+        app.register_blueprint(admin_bp)        
+        app.register_blueprint(session_bp)         # <--- ADDED: Register session blueprint
+        from flask import render_template
+        @app.route("/")
+        def serve_dashboard():
+            return render_template("index.html")
     return app

@@ -5,81 +5,308 @@
     <title>SENTINEL Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --blue: #3b82f6; --line: #334155; --green-dim: #065f46; --green: #10b981; --red: #ef4444; --gray: #9ca3af; --text-dim: #64748b; }
-        .panel { background: rgba(0,0,0,0.8); border: 1px solid var(--line); }
-        .hidden { display: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root { 
+            /* High-End Designer Blue Theme */
+            --blue: #00e6ff; 
+            --blue-dim: #005f7a;
+            --blue-bg: #010a15;
+            --red: #ff003c; 
+            --gray: #6b7280; 
+            --glow-blue: 0 0 20px rgba(0, 230, 255, 0.4);
+            --glow-red: 0 0 20px rgba(255, 0, 60, 0.6);
+        }
+
+        body {
+            background-color: var(--blue-bg);
+            color: var(--blue);
+            font-family: 'Space Mono', monospace;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Animated Moving Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; width: 200vw; height: 200vh;
+            background-image: 
+                linear-gradient(rgba(0, 230, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 230, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            animation: gridMove 10s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(40px) translateZ(-200px); }
+        }
+
+        /* Glassmorphism Panel Styling */
+        .panel { 
+            background: rgba(1, 10, 21, 0.75); 
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--blue-dim); 
+            box-shadow: inset 0 0 20px rgba(0, 230, 255, 0.05), 0 10px 30px rgba(0,0,0,0.8);
+            border-radius: 12px;
+        }
         
-        /* NEW: CSS for the screen shake effect */
-        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
-        .shake { animation: shake 0.1s ease-in-out infinite; }
+        .hidden { display: none !important; }
+        .glow-red { text-shadow: var(--glow-red); color: var(--red); }
+        .glow-blue { text-shadow: var(--glow-blue); }
+        
+        /* Smooth Slide-Up Animation for Login */
+        @keyframes slideUpFade {
+            0% { transform: translateY(80px) scale(0.95); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .slide-up { animation: slideUpFade 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Lock Screen Shake */
+        @keyframes shake { 
+            0%, 100% {transform: translateX(0);} 
+            25% {transform: translateX(-5px);} 
+            75% {transform: translateX(5px);} 
+        }
+        .shake { animation: shake 0.2s ease-in-out infinite; }
+
+        input, select, textarea {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--blue-dim);
+            color: var(--blue);
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: var(--glow-blue);
+            background: rgba(0, 20, 40, 0.8);
+        }
+        input::placeholder, textarea::placeholder { color: var(--blue-dim); opacity: 0.5; }
     </style>
 </head>
-<body class="bg-slate-900 text-white p-8">
+<body class="relative min-h-screen flex flex-col">
+    
+    <div class="grid-bg"></div>
 
-    <div id="loginScreen" class="max-w-sm mx-auto panel rounded-lg p-6 mt-20">
-        <h2 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-4">Authenticate</h2>
-        <input id="loginUser" placeholder="username" class="w-full mb-2 bg-black/40 border border-[var(--line)] rounded p-2 text-white text-sm">
-        <input id="loginPass" type="password" placeholder="password" class="w-full mb-3 bg-black/40 border border-[var(--line)] rounded p-2 text-white text-sm">
-        <button id="loginBtn" class="w-full px-4 py-2 rounded bg-[var(--green-dim)] hover:bg-[var(--green)] hover:text-black transition text-sm">LOGIN</button>
-        <p id="loginError" class="text-[var(--red)] text-xs mt-2"></p>
+    <div id="lockScreen" class="hidden absolute inset-0 bg-[#010a15]/95 backdrop-blur-xl z-50 flex items-center justify-center flex-col">
+        <h1 class="text-6xl text-[var(--red)] glow-red font-bold mb-4 animate-pulse uppercase tracking-widest">Terminal Locked</h1>
+        <p class="text-[var(--blue)] mb-8 text-lg font-mono">Biometric mismatch detected. Session suspended.</p>
+        
+        <div class="panel p-8 border-l-4 border-l-[var(--red)] w-[400px]">
+            <p class="text-sm mb-4 text-[var(--gray)] uppercase tracking-wider">Re-authenticate to regain access:</p>
+            <input id="unlockPass" type="password" placeholder="enter password..." class="w-full p-3 mb-6 rounded text-sm border border-[var(--red)] focus:shadow-[var(--glow-red)] focus:border-[var(--red)] text-[var(--red)]">
+            <button id="unlockBtn" class="w-full px-4 py-3 bg-[var(--red)] text-[#010a15] font-bold tracking-[0.2em] rounded hover:bg-white hover:shadow-[var(--glow-red)] transition-all uppercase">
+                [ UNLOCK ]
+            </button>
+            <p id="unlockError" class="text-[var(--red)] text-xs mt-4 hidden glow-red uppercase text-center"></p>
+        </div>
     </div>
 
-    <div id="dashboardRoot" class="hidden">
-        <header class="mb-8">
-            <h1 class="text-2xl font-bold text-[var(--blue)]">SENTINEL Dashboard</h1>
-        </header>
-        
-        <main class="grid grid-cols-2 gap-6">
-            <div id="chartPanel" class="panel p-6 rounded-lg flex items-center justify-center text-[var(--gray)]">Chart Area (WPM)</div>
+    <div id="loginWrapper" class="flex-grow flex items-center justify-center p-6">
+        <div id="loginScreen" class="w-full max-w-md panel p-10 slide-up relative">
             
-            <div id="riskPanel" class="panel p-6 rounded-lg flex flex-col justify-between">
-                <div>
-                    <h3 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-4">Attack Simulation</h3>
-                    <label class="block text-xs text-[var(--gray)] mb-2">Select Phase 7 Attacker Archetype:</label>
-                    
-                    <div class="flex gap-2 items-center mt-3">
-                        <select id="attackTypeSelect" class="w-full bg-black/40 border border-[var(--line)] rounded p-2 text-sm text-[var(--red)] outline-none">
-                            <option value="bot_typing">Bot typing (uniform)</option>
-                            <option value="high_speed_typing">High-speed burst</option>
-                            <option value="noisy_impersonator">Noisy impersonator</option>
-                            <option value="random_noise_injection">Random noise</option>
-                        </select>
-                        <button id="attackBtn" class="px-4 py-2 rounded border border-[var(--red)] text-[var(--red)] hover:bg-[var(--red)] hover:text-black transition text-sm tracking-wide font-bold whitespace-nowrap">
-                            ⚠ LAUNCH
-                        </button>
-                    </div>
-
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 border-2 border-[var(--blue)] rounded-full flex items-center justify-center shadow-[var(--glow-blue)]">
+                    <svg class="w-8 h-8 text-[var(--blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
                 </div>
             </div>
 
-            <div id="terminalLog" class="col-span-2 panel p-6 rounded-lg h-40 overflow-y-auto font-mono text-xs flex flex-col-reverse">
+            <div class="text-center mb-10">
+                <p class="text-xs tracking-[0.3em] text-[var(--blue)] glow-blue uppercase">[ Authentication Required ]</p>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block text-[10px] text-[var(--blue-dim)] mb-2 tracking-[0.2em] uppercase">user Id</label>
+                <input id="loginUser" placeholder="admin" class="w-full p-3 text-sm rounded">
+            </div>
+            
+            <div class="mb-8">
+                <label class="block text-[10px] text-[var(--blue-dim)] mb-2 tracking-[0.2em] uppercase">access key</label>
+                <input id="loginPass" type="password" placeholder="••••••••" class="w-full p-3 text-sm rounded">
+            </div>
+            
+            <button id="loginBtn" class="w-full px-4 py-4 bg-[var(--blue-dim)] text-white hover:bg-[var(--blue)] hover:text-[#010a15] hover:shadow-[var(--glow-blue)] transition-all rounded text-sm font-bold tracking-[0.2em] uppercase">
+                [ Initialize Session ]
+            </button>
+            <p id="loginError" class="text-[var(--red)] text-xs mt-4 text-center glow-red uppercase hidden"></p>
+        </div>
+    </div>
+
+    <div id="dashboardRoot" class="hidden flex-grow p-8 max-w-7xl mx-auto w-full slide-up">
+        <header class="mb-8 border-b border-[var(--blue-dim)] pb-4 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold text-[var(--blue)] glow-blue font-['Rajdhani'] tracking-wider">SYSTEM.SENTINEL</h1>
+                <p class="text-xs text-[var(--blue-dim)] mt-1 uppercase tracking-widest">Continuous biometric overwatch active</p>
+            </div>
+            <div id="authStatus" class="text-xs border border-[var(--blue)] px-3 py-1.5 rounded glow-blue animate-pulse tracking-widest uppercase bg-[var(--blue)]/10">
+                STATE: SECURE
+            </div>
+        </header>
+        
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="panel p-6 flex flex-col">
+                <h3 class="text-xs tracking-[0.2em] mb-4 glow-blue uppercase text-[var(--gray)]">Workspace / <span class="text-[var(--blue)]">Biometric Input</span></h3>
+                <textarea id="typingArea" class="w-full h-32 p-4 text-sm resize-none rounded" placeholder="Begin typing natural text here to feed the continuous authentication matrix..."></textarea>
+                <div class="mt-3 text-[10px] text-[var(--blue-dim)] flex justify-between tracking-widest uppercase">
+                    <span id="keystrokeCount">keystrokes: 0</span>
+                    <span>interval: 30s</span>
                 </div>
+            </div>
+            
+            <div id="riskPanel" class="panel p-6 flex flex-col justify-between border-l-4 border-l-[var(--red)]">
+                <div>
+                    <h3 class="text-xs tracking-[0.2em] text-[var(--red)] mb-4 glow-red uppercase">Execute Simulation</h3>
+                    <label class="block text-[10px] text-[var(--gray)] mb-2 tracking-widest uppercase">Phase 7 Vector Selection:</label>
+                    
+                    <div class="flex gap-3 items-center mt-3">
+                        <select id="attackTypeSelect" class="w-full p-3 text-sm text-[var(--red)] border-[var(--red)] rounded focus:shadow-[var(--glow-red)]">
+                            <option value="bot_typing">Payload: Bot_Typing (Uniform)</option>
+                            <option value="high_speed_typing">Payload: High_Speed_Burst</option>
+                            <option value="noisy_impersonator">Payload: Noisy_Impersonator</option>
+                            <option value="random_noise_injection">Payload: Random_Noise</option>
+                        </select>
+                        <button id="attackBtn" class="px-6 py-3 border-2 border-[var(--red)] rounded text-[var(--red)] hover:bg-[var(--red)] hover:text-white transition-all text-sm font-bold whitespace-nowrap glow-red tracking-widest uppercase">
+                            Deploy
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2">
+                <h3 class="text-[10px] tracking-widest text-[var(--blue-dim)] mb-2 uppercase">stdout /var/log/sentinel.log</h3>
+                <div id="terminalLog" class="panel p-6 h-48 overflow-y-auto text-xs flex flex-col-reverse whitespace-pre-wrap leading-relaxed font-mono">
+                </div>
+            </div>
         </main>
 
-        <div class="panel rounded-lg p-6 mt-6">
-            <h2 class="text-sm uppercase tracking-widest text-[var(--blue)] mb-3">Session History</h2>
+        <div class="panel p-6 mt-6">
+            <h2 class="text-xs tracking-[0.2em] mb-4 glow-blue uppercase text-[var(--gray)]">Session <span class="text-[var(--blue)]">Telemetry Data</span></h2>
             <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left">
+                <table class="w-full text-xs text-left border-collapse">
                     <thead>
-                        <tr class="text-[var(--text-dim)] uppercase border-b border-[var(--line)]">
-                            <th class="px-2 py-2">ID</th>
-                            <th class="px-2 py-2">WPM</th>
-                            <th class="px-2 py-2">Risk</th>
-                            <th class="px-2 py-2">Label</th>
-                            <th class="px-2 py-2">Source</th>
-                            <th class="px-2 py-2">Verdict</th>
+                        <tr class="text-[var(--blue-dim)] border-b border-[var(--blue-dim)] tracking-widest uppercase bg-black/20">
+                            <th class="px-4 py-3 rounded-tl">ID</th>
+                            <th class="px-4 py-3">WPM</th>
+                            <th class="px-4 py-3">Risk</th>
+                            <th class="px-4 py-3">Label</th>
+                            <th class="px-4 py-3">Source</th>
+                            <th class="px-4 py-3 rounded-tr">Verdict</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
+        // --- GLOBAL STATE ---
         let authToken = null;
+        let continuousAuthInterval = null;
+        let currentUsername = sessionStorage.getItem("username") || null;
+        
+        // --- KEYSTROKE CAPTURE LOGIC ---
+        let keyEvents = [];
+        let typingStartTime = null;
 
+        document.getElementById("typingArea")?.addEventListener("keydown", (e) => {
+            if (!typingStartTime) typingStartTime = Date.now();
+            keyEvents.push({ key: e.key, time: Date.now() });
+            document.getElementById("keystrokeCount").innerText = `keystrokes: ${keyEvents.length}`;
+        });
+
+        function computeFeatures() {
+            if (keyEvents.length < 2) return { typing_speed: 0, flight_time_avg: 0, error_rate: 0 };
+            const durationMinutes = (Date.now() - typingStartTime) / 60000;
+            const wpm = Math.round((keyEvents.length / 5) / (durationMinutes || 0.01));
+            return {
+                typing_speed: wpm,
+                flight_time_avg: 120, 
+                error_rate: 0.05      
+            };
+        }
+
+        function resetCapture() {
+            keyEvents = [];
+            typingStartTime = null;
+            document.getElementById("keystrokeCount").innerText = `keystrokes: 0`;
+        }
+
+        function logLine(text, cssClass = "text-[var(--blue)]") {
+            const logPanel = document.getElementById("terminalLog");
+            const timestamp = new Date().toISOString().split('T')[1].slice(0,-1); 
+            logPanel.innerHTML = `<span class="${cssClass}">[${timestamp}] ${text}</span><br>` + logPanel.innerHTML;
+        }
+
+        // --- STEP 1 & 2: CONTINUOUS AUTH & LOCK LOGIC ---
+        function lockTerminal() {
+            stopContinuousAuth(); 
+            document.getElementById("lockScreen").classList.remove("hidden");
+            document.getElementById("unlockPass").value = "";
+            logLine("[!] CRITICAL: SESSION LOCKED DUE TO BIOMETRIC ANOMALY", "text-[var(--red)] glow-red font-bold");
+        }
+
+        document.getElementById("unlockBtn").addEventListener("click", async () => {
+            const password = document.getElementById("unlockPass").value;
+            try {
+                await login(currentUsername, password);
+                document.getElementById("lockScreen").classList.add("hidden");
+                document.getElementById("unlockError").classList.add("hidden");
+                
+                document.getElementById("authStatus").innerText = "STATE: SECURE";
+                document.getElementById("authStatus").className = "text-xs border border-[var(--blue)] px-3 py-1.5 rounded glow-blue animate-pulse tracking-widest uppercase bg-[var(--blue)]/10";
+                logLine(">> Terminal unlocked. Identity re-verified.", "text-[var(--blue)] glow-blue");
+                
+                startContinuousAuth(30); 
+            } catch (err) {
+                const errText = document.getElementById("unlockError");
+                errText.textContent = "ERR: INVALID CREDENTIALS";
+                errText.classList.remove("hidden");
+            }
+        });
+
+        function startContinuousAuth(intervalSeconds = 30) {
+            logLine(">> Initializing continuous biometric telemetry...", "text-[var(--blue-dim)]");
+            
+            continuousAuthInterval = setInterval(async () => {
+                if (keyEvents.length < 5) return;   
+                
+                logLine(">> Dispatching continuous telemetry package...", "text-[var(--gray)]");
+                const features = computeFeatures();
+                
+                try {
+                    const res = await fetch("/api/session", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", ...authHeaders() },
+                        body: JSON.stringify({ ...features, source: "continuous" })
+                    });
+                    
+                    const result = await res.json();
+                    renderResult(result, "continuous");
+                    
+                    if (result.is_anomaly) {
+                        lockTerminal();
+                    }
+                    loadHistory(); 
+                } catch (err) {
+                    console.error("Continuous auth check failed", err);
+                }
+                resetCapture();
+            }, intervalSeconds * 1000);
+        }
+
+        function stopContinuousAuth() {
+            clearInterval(continuousAuthInterval);
+        }
+
+        // --- CORE API & UI LOGIC ---
         async function login(username, password) {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
@@ -111,13 +338,13 @@
                 
                 sessions.forEach(s => {
                     const row = document.createElement("tr");
-                    row.className = s.is_anomaly ? "text-[var(--red)]" : "text-[var(--green)]";
+                    row.className = s.is_anomaly ? "text-[var(--red)] glow-red bg-[var(--red)]/5" : "text-[var(--blue)] hover:bg-white/5 transition-colors";
                     const cells = [s.id, s.wpm, s.risk_score, s.true_label || "-", s.source, s.is_anomaly ? "ANOMALY" : "OK"];
                     
-                    cells.forEach(val => {
+                    cells.forEach((val, i) => {
                         const td = document.createElement("td");
                         td.textContent = val; 
-                        td.className = "px-2 py-2 border-b border-[var(--line)]/50";
+                        td.className = `px-4 py-3 border-b border-[var(--blue-dim)]/30 ${i===0 ? 'font-bold' : ''}`;
                         row.appendChild(td);
                     });
                     tbody.appendChild(row);
@@ -127,40 +354,14 @@
             }
         }
 
-        async function submitSession(features) {
-            try {
-                const res = await fetch("/api/session", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", ...authHeaders() },
-                    body: JSON.stringify({ ...features, source: "live" })
-                });
-
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        document.getElementById("terminalLog").innerHTML = `<span class="text-[var(--red)]">[!] 401 Unauthorized: Token missing or expired.</span><br>` + document.getElementById("terminalLog").innerHTML;
-                    }
-                    return;
-                }
-                loadHistory(); 
-            } catch (err) {
-                console.error("Error submitting session:", err);
-            }
-        }
-
-        // NEW: Helper functions for Step 4
         function renderResult(result, source) {
-            const logPanel = document.getElementById("terminalLog");
-            const statusClass = result.is_anomaly ? "text-[var(--red)]" : "text-[var(--green)]";
-            logPanel.innerHTML = `<span class="${statusClass}">[${source}] Risk Score: ${result.risk_score} | Verdict: ${result.is_anomaly ? "ANOMALY" : "OK"}</span><br>` + logPanel.innerHTML;
+            const statusClass = result.is_anomaly ? "text-[var(--red)] glow-red font-bold" : "text-[var(--blue)]";
+            logLine(`[${source.toUpperCase()}] risk_score: ${result.risk_score} | verdict: ${result.is_anomaly ? "ANOMALY" : "OK"}`, statusClass);
         }
 
-        function updateChart(wpm) {
-            document.getElementById("chartPanel").innerHTML = `Latest Simulated WPM: <span class="text-[var(--blue)] font-bold text-2xl ml-2">${wpm}</span>`;
-        }
-
-        // NEW: Step 4 Simulation trigger hitting the real Phase 7 backend
         async function triggerSimulatedAttack(attackType) {
             try {
+                logLine(`>> Injecting payload vector: ${attackType}`, "text-[var(--red)]");
                 const res = await fetch("/api/simulate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -170,22 +371,19 @@
                 if (!res.ok) throw new Error(`Backend Error ${res.status}`);
                 
                 const result = await res.json();
-                
                 renderResult(result, `simulated:${attackType}`);
-                updateChart(result.profile.wpm);
                 loadHistory(); 
                 
-                // Triggers the CSS shake animation
                 document.body.classList.add("shake");
-                setTimeout(() => document.body.classList.remove("shake"), 400);
+                setTimeout(() => document.body.classList.remove("shake"), 200);
 
             } catch (err) {
                 console.error("Simulation failed:", err);
-                document.getElementById("terminalLog").innerHTML = `<span class="text-[var(--red)]">[!] Error connecting to /api/simulate. Is your backend running?</span><br>` + document.getElementById("terminalLog").innerHTML;
+                logLine("[!] FATAL: Connection to /api/simulate refused.", "text-[var(--red)] glow-red");
             }
         }
 
-        // NEW: Step 4 Button Event Listener
+        // --- EVENT LISTENERS ---
         document.getElementById("attackBtn").addEventListener("click", () => {
             const type = document.getElementById("attackTypeSelect").value;
             triggerSimulatedAttack(type);
@@ -196,11 +394,19 @@
             const password = document.getElementById("loginPass").value;
             try {
                 await login(username, password);
-                document.getElementById("loginScreen").classList.add("hidden");
+                
+                sessionStorage.setItem("username", username);
+                currentUsername = username;
+
+                document.getElementById("loginWrapper").classList.add("hidden");
                 document.getElementById("dashboardRoot").classList.remove("hidden");
                 loadHistory(); 
+                
+                startContinuousAuth(30);
             } catch (err) {
-                document.getElementById("loginError").textContent = err.message;
+                const errEl = document.getElementById("loginError");
+                errEl.textContent = "ERR: " + err.message;
+                errEl.classList.remove("hidden");
             }
         });
 
@@ -208,9 +414,10 @@
             const saved = sessionStorage.getItem("authToken");
             if (saved) {
                 authToken = saved;
-                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("loginWrapper").classList.add("hidden");
                 document.getElementById("dashboardRoot").classList.remove("hidden");
                 loadHistory();
+                startContinuousAuth(30);
             }
         });
     </script>
